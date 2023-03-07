@@ -1,129 +1,266 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load
 
-# C extensions
-*.so
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+# Input data files are available in the read-only "../input/" directory
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        os.path.join(dirname, filename)
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+# You can write up to 20GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load
 
-# Translations
-*.mo
-*.pot
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
+# Input data files are available in the read-only "../input/" directory
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
 
-# Flask stuff:
-instance/
-.webassets-cache
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        os.path.join(dirname, filename)
 
-# Scrapy stuff:
-.scrapy
+# You can write up to 20GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
 
-# Sphinx documentation
-docs/_build/
+path_train = "../input/covid-ct-scan-lung-data/lung_covid_dataset/train"
+path_test = "../input/covid-ct-scan-lung-data/lung_covid_dataset/validation"
+image_size = (256, 256, 3)
+num_classes = glob(path_train + '/*')
+batch_size = 128
+learning_rate = 1e-5
+imgs = glob(path_train + '/*/*')
+val_imgs = glob(path_test + '/*/*')
 
-# PyBuilder
-target/
+target_dict = {0: "covid", 1: "not covid"}
 
-# Jupyter Notebook
-.ipynb_checkpoints
+def inception_blocks(prevlayer, a, b, pooling):
+    conva = Conv2D(a, (3, 3), activation='relu', padding='same')(prevlayer)
+    conva = BatchNormalization()(conva)
+    conva = Conv2D(b, (3, 3), activation='relu', padding='same')(conva)
+    conva = BatchNormalization()(conva)
+    if True == pooling:
+        conva = MaxPooling2D(pool_size=(2, 2))(conva)
+    
+    
+    convb = Conv2D(a, (5, 5), activation='relu', padding='same')(prevlayer)
+    convb = BatchNormalization()(convb)
+    convb = Conv2D(b, (5, 5), activation='relu', padding='same')(convb)
+    convb = BatchNormalization()(convb)
+    if True == pooling:
+        convb = MaxPooling2D(pool_size=(2, 2))(convb)
 
-# IPython
-profile_default/
-ipython_config.py
+    convc = Conv2D(b, (1, 1), activation='relu', padding='same')(prevlayer)
+    convc = BatchNormalization()(convc)
+    if True == pooling:
+        convc = MaxPooling2D(pool_size=(2, 2))(convc)
+        
+    convd = Conv2D(a, (3, 3), activation='relu', padding='same')(prevlayer)
+    convd = BatchNormalization()(convd)
+    convd = Conv2D(b, (1, 1), activation='relu', padding='same')(convd)
+    convd = BatchNormalization()(convd)
+    if True == pooling:
+        convd = MaxPooling2D(pool_size=(2, 2))(convd)
+        
+    up = concatenate([conva, convb, convc, convd])
+    return up
+    
+    def dice_coef(y_true, y_pred):
+    smooth = 1.
+    y_true_f = K.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
+    intersection = K.sum(y_true_f * y_pred_f)
+    return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
 
-# pyenv
-.python-version
+def dice_coef_loss(y_true, y_pred):
+    return -dice_coef(y_true, y_pred)
+    
+    def unet_blocks(output_shape):
+    return output_shape
+    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(output_shape)
+    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
+    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
 
-# pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
+    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(pool1)
+    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv2)
+    
+    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
 
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow
-__pypackages__/
+    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(pool2)
+    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv3)
+    pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
 
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
+    conv4 = Conv2D(256, (3, 3), activation='relu', padding='same')(pool3)
+    conv4 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv4)
+    pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
 
-# SageMath parsed files
-*.sage.py
+    conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(pool4)
+    conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(conv5)
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+    up6 = concatenate([Conv2DTranspose(256, (2, 2), strides=(2, 2), padding='same')(conv5), conv4], axis=3)
+    conv6 = Conv2D(256, (3, 3), activation='relu', padding='same')(up6)
+    conv6 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv6)
 
-# Spyder project settings
-.spyderproject
-.spyproject
+    up7 = concatenate([Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same')(conv6), conv3], axis=3)
+    conv7 = Conv2D(128, (3, 3), activation='relu', padding='same')(up7)
+    conv7 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv7)
 
-# Rope project settings
-.ropeproject
+    up8 = concatenate([Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same')(conv7), conv2], axis=3)
+    conv8 = Conv2D(64, (3, 3), activation='relu', padding='same')(up8)
+    conv8 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv8)
 
-# mkdocs documentation
-/site
+    convT1 = Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same')(conv2)
+    up9 = concatenate([convT1, conv1], axis=3)
+    
+    conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(convT1)
+    conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv9)
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
+    conv10 = Conv2D(1, (1, 1), activation='relu')(conv9)
+    return conv10
+    
+    def get_unet_plus_inception(image_size = (256, 256, 3)):
+    inputs = Input(image_size)
+    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(inputs)
+    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
+    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
 
-# Pyre type checker
-.pyre/
+    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(pool1)
+    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv2)
+    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
+
+    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(pool2)
+    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv3)
+    pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
+
+    conv4 = Conv2D(256, (3, 3), activation='relu', padding='same')(pool3)
+    conv4 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv4)
+    pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
+
+    conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(pool4)
+    conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(conv5)
+
+    xx1 = inception_blocks(inputs, 16, 16, False)
+    xx2 = inception_blocks(xx1, 32, 32, True)
+    xx3 = inception_blocks(xx2, 64, 64, True)
+    xx4 = inception_blocks(xx3, 128, 128, True)
+    
+    up6 = concatenate([Conv2DTranspose(256, (2, 2), strides=(2, 2), padding='same')(conv5), conv4, xx4], axis=3)
+    conv6 = Conv2D(256, (3, 3), activation='relu', padding='same')(up6)
+    conv6 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv6)
+
+    up7 = concatenate([Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same')(conv6), conv3, xx3], axis=3)
+    conv7 = Conv2D(128, (3, 3), activation='relu', padding='same')(up7)
+    conv7 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv7)
+
+    up8 = concatenate([Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same')(conv7), conv2, xx2], axis=3)
+    conv8 = Conv2D(64, (3, 3), activation='relu', padding='same')(up8)
+    conv8 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv8)
+
+    up9 = concatenate([Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same')(conv8), conv1, xx1], axis=3)
+    conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(up9)
+    conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv9)
+
+
+    conv10 = Conv2D(1, (1, 1), activation='sigmoid')(conv9)
+    model = Model(inputs=[inputs], outputs=[conv10])
+    
+    return model
+    
+    def inception_plus_unet(input_size=(128,128,3)):
+    
+    ptm = InceptionV3(input_shape = image_size,weights = 'imagenet', include_top = False)
+    ptm.trainable = False
+    dense = unet_blocks(ptm.output)
+    flat = Flatten()(dense)
+    dense1 = Dense(len(num_classes), activation="softmax")(flat)
+    
+    return Model(inputs = ptm.input, outputs = dense1)
+    
+    model = inception_plus_unet(image_size)
+model.compile(optimizer = Adam(learning_rate = learning_rate), loss = "categorical_crossentropy", metrics = ["accuracy"])
+
+#tensorflow.keras.utils.plot_model(model, show_shapes = True)
+
+train_data = ImageDataGenerator(rotation_range=20,
+                              width_shift_range=0.1,
+                              height_shift_range=0.1,
+                              shear_range=0.1,
+                              zoom_range=0.2,
+                              horizontal_flip=True,
+                              preprocessing_function=preprocess_input)
+test_data = ImageDataGenerator(preprocessing_function=preprocess_input)
+
+train_generator = train_data.flow_from_directory(path_train, shuffle = True, batch_size = batch_size)
+test_generator = test_data.flow_from_directory(path_test, batch_size = batch_size)
+
+r = model.fit(
+  train_generator,
+  validation_data = test_generator,
+  epochs = 100
+)
+
+def dic_maker(arr):
+    """ dis takes in arr [[prob(1),prob(2),prob(3)......prob(n)]]
+    and outputs [(1,prob(1)),(2,prob(2))]
+    (basically some formatting to make life easier)"""
+    dict_ = {}
+    for ind in range(len(arr[0])):
+        dict_[ind] = arr[0][ind]
+    return sorted(dict_.items(), key=lambda x: x[1],reverse=True)[:3]
+
+def dic_maker_tuple(tuple_arr):
+    """ takes in [(x,y),(a,b)]
+      outputs {x:y,a:b} (basically some formatting to make life easier)
+    """
+    dict_ = {}
+    for tuple_ in tuple_arr:
+        dict_[target_dict[tuple_[0]]] = tuple_[1]
+    return dict_
+
+def inception_no_gen(image_path):
+    """ 
+    prediction happens in this function
+    super important, takes in image_path (/content/test_1/test/111.jpg)
+    outputs: {1:prob(1),2:prob(2)}
+    """
+    image_1 = tensorflow.keras.preprocessing.image.load_img(image_path)
+    input_arr = tensorflow.keras.preprocessing.image.img_to_array(image_1)
+    input_arr = preprocess_input(input_arr)
+    input_arr = tensorflow.image.resize(input_arr,size = (256,256))
+    input_arr = np.array([input_arr])  # Convert single image to a batch.
+    predictions = model.predict(input_arr)
+    return dic_maker_tuple(dic_maker(predictions))
+
+def plot_pred_final(image_path_custom):
+    """
+    dis takes in {1:prob(1),2:prob(2)}
+    and plots a image with predictions
+    """
+    test_imgs = glob(image_path_custom + '/*')[:3]
+    fig = make_subplots(rows=len(test_imgs)+1, cols=2)
+    row = 1
+    for path in test_imgs:
+        pred_list = inception_no_gen(path)
+        fig.append_trace(go.Image(z=np.array(image.load_img(path))),row,1)
+        fig.append_trace(go.Bar(y = list(pred_list.keys()), x = list(pred_list.values()),orientation='h'),row,2)
+        row += 1
+    fig.update_layout(height= (400*len(test_imgs)), title_text="Custom Predictions",showlegend = False)
+    fig.show()
+    
+    test_path_custom = "../input/covid-ct-scan-lung-data/lung_covid_dataset/validation/CT_COVID"
+plot_pred_final(test_path_custom)
+
+test_path_custom = "../input/covid-ct-scan-lung-data/lung_covid_dataset/validation/CT_NonCOVID"
+plot_pred_final(test_path_custom)
+
